@@ -1,5 +1,5 @@
 [package]
-name = "id_utils"
+name = "dis-id-gen"
 version = "0.1.0"
 edition = "2021"
 
