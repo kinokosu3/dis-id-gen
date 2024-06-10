@@ -49,19 +49,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22ec99545bb0ed0ea7bb9b8e1e9122ea386ff8a48c0922e43f36d45ab09e0e80"
 
 [[package]]
-name = "dis-id-gen"
-version = "0.1.0"
-dependencies = [
- "base64",
- "hostname",
- "lazy_static",
- "md5",
- "rand",
- "rayon",
- "regex",
-]
-
-[[package]]
 name = "either"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -90,10 +77,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "lazy_static"
-version = "1.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
+name = "id_utils"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "hostname",
+ "md5",
+ "rand",
+ "rayon",
+ "regex",
+]
 
 [[package]]
 name = "libc"

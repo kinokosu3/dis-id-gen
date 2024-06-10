@@ -1,47 +1,58 @@
-use std::env;
 use std::error::Error;
+use std::sync::{Once, OnceLock};
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::Once;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use base64::alphabet::Alphabet;
 use base64::Engine;
-use base64::engine::general_purpose::GeneralPurpose;
-use base64::engine::general_purpose::GeneralPurposeConfig;
-use lazy_static::lazy_static;
+use base64::engine::{GeneralPurpose, GeneralPurposeConfig};
 use md5;
 use rand::RngCore;
 use rand::rngs::OsRng;
 use regex::Regex;
 
-lazy_static! {
-    static ref PROCESS_UNIQUE: [u8; 8] = {
-        let hostname = hostname::get().expect("Cannot get hostname").to_string_lossy().into_owned();
-        let hash = md5::compute(hostname.as_bytes());
-        let mut b = [0u8; 8];
-        b[0..3].copy_from_slice(&hash[0..3]);
-        let mut rng = OsRng::default();
-        rng.fill_bytes(&mut b[3..]);
-        b
-    };
-
-    static ref IDC_NAME: String = {
-        if let Ok(name) = env::var("OBJECT_ID_IDC") {
-            validate_idc_name(&name);
-            name
-        } else {
-            "00".to_string()
-        }
-    };
-
-    static ref CUSTOM_ENGINE: GeneralPurpose = {
-        let custom_alphabet = Alphabet::new("-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz").unwrap();
-        GeneralPurpose::new(&custom_alphabet, GeneralPurposeConfig::new().with_encode_padding(false))
-    };
-}
-
 static OBJECT_ID_COUNTER: AtomicU32 = AtomicU32::new(0);
 static INIT: Once = Once::new();
+
+fn initialize_idc_name() -> String {
+    if let Ok(name) = std::env::var("OBJECT_ID_IDC") {
+        validate_idc_name(&name);
+        name
+    } else {
+        "00".to_string()
+    }
+}
+
+fn get_idc_name() -> &'static String {
+    static IDC_NAME: OnceLock<String> = OnceLock::new();
+    IDC_NAME.get_or_init(|| initialize_idc_name())
+}
+
+fn get_process_unique() -> &'static [u8; 8] {
+    static PROCESS_UNIQUE: OnceLock<[u8; 8]> = OnceLock::new();
+    PROCESS_UNIQUE.get_or_init(|| initialize_process_unique())
+}
+
+fn initialize_process_unique() -> [u8; 8] {
+    let hostname = hostname::get().expect("Cannot get hostname").to_string_lossy().into_owned();
+    let hash = md5::compute(hostname.as_bytes());
+    let mut b = [0u8; 8];
+    b[0..3].copy_from_slice(&hash[0..3]);
+    let mut rng = OsRng::default();
+    rng.fill_bytes(&mut b[3..]);
+    b
+}
+
+fn get_custom_engine() -> &'static GeneralPurpose {
+    static CUSTOM_ENGINE: OnceLock<GeneralPurpose> = OnceLock::new();
+    CUSTOM_ENGINE.get_or_init(|| initialize_custom_engine())
+}
+
+fn initialize_custom_engine() -> GeneralPurpose {
+    let custom_alphabet = Alphabet::new("-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz").unwrap();
+    GeneralPurpose::new(&custom_alphabet, GeneralPurposeConfig::new().with_encode_padding(false))
+}
+
 
 fn initialize() {
     INIT.call_once(|| {
@@ -62,11 +73,11 @@ fn validate_idc_name(name: &str) {
 }
 
 fn encode(src: &[u8]) -> String {
-    CUSTOM_ENGINE.encode(src)
+    get_custom_engine().encode(src)
 }
 
 fn decode(s: &str) -> Result<Vec<u8>, Box<dyn Error>> {
-    Ok(CUSTOM_ENGINE.decode(s.as_bytes())?)
+    Ok(get_custom_engine().decode(s.as_bytes())?)
 }
 
 fn set_timestamp(b: &mut [u8]) {
@@ -92,9 +103,9 @@ pub fn generate_id() -> String {
     initialize(); // Ensure initialization is called
     let mut b = [0u8; 18];
     set_timestamp(&mut b[0..6]);
-    b[6..14].copy_from_slice(&*PROCESS_UNIQUE); // 解引用 PROCESS_UNIQUE
+    b[6..14].copy_from_slice(&*get_process_unique()); // 解引用 PROCESS_UNIQUE
     set_counter(&mut b[14..18]);
-    format!("{}{}", encode(&b), &*IDC_NAME)
+    format!("{}{}", encode(&b), &*get_idc_name())
 }
 
 pub fn parse_time(id: &str) -> Result<SystemTime, Box<dyn Error>> {

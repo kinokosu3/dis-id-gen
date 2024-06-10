@@ -1,5 +1,5 @@
 [package]
-name = "dis-id-gen"
+name = "id_utils"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,6 +8,5 @@ regex = "1.10.4"
 rand = "0.8.5"
 md5 = "0.7.0"
 base64 = "0.22.1"
-lazy_static = "1.4.0"
 hostname = "0.4.0"
 rayon = "1.10.0"
