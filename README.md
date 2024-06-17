@@ -1,3 +1,3 @@
-### a distributed id generate with rust
+### a distributed id generator with rust
 
 ### developing
